@@ -307,6 +307,15 @@ module ActiveSupport
       assert_equal true, @logger.error("Hello")
     end
 
+    test "with_level invokes its block one time, even when broadcasting to 2 or more loggers" do
+      invocations = 0
+      @logger.with_level("info") do
+        invocations += 1
+      end
+
+      assert_equal 1, invocations
+    end
+
     Logger::Severity.constants.each do |level_name|
       method = level_name.downcase
       level = Logger::Severity.const_get(level_name)
