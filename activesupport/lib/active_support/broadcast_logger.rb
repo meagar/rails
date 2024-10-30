@@ -218,6 +218,19 @@ module ActiveSupport
       dispatch { |logger| logger.fatal! }
     end
 
+    # Adjust the log level for all loggers for the duration of the block, then restore it
+    #
+    #   logger.with_level(:debug) do
+    #     logger.debug { "Hello" }
+    #   end
+    def with_level(level, &block)
+      old_levels = @broadcasts.map(&:level)
+      dispatch { |logger| logger.level = level }
+      yield
+    ensure
+      old_levels.each.with_index { |old_level, index| @broadcasts[index].level = old_level }
+    end
+
     def initialize_copy(other)
       @broadcasts = []
       @progname = other.progname.dup

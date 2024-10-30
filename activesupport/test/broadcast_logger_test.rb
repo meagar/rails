@@ -307,6 +307,67 @@ module ActiveSupport
       assert_equal true, @logger.error("Hello")
     end
 
+    test "with_level invokes its block one time, even when broadcasting to 2 or more loggers" do
+      invocations = 0
+      log1 = ::Logger.new(nil)
+      log2 = ::Logger.new(nil)
+
+      logger = BroadcastLogger.new(log1, log2)
+
+      invocations = 0
+      logger.with_level(:info) do
+        invocations += 1
+      end
+
+      assert_equal 1, invocations
+    end
+
+    test "with_level invokes its block one time, even when broadcasting to zero loggers" do
+      logger = BroadcastLogger.new()
+
+      invocations = 0
+      logger.with_level(:info) do
+        invocations += 1
+      end
+
+      assert_equal 1, invocations
+    end
+
+    test "with_level returns nil" do
+      assert_nil @logger.with_level(:debug) { }
+    end
+
+    test "with_level changes the logging level, and restores it afterwards" do
+      buf1 = StringIO.new
+      buf2 = StringIO.new
+
+      log1 = ::Logger.new(buf1)
+      log2 = ::Logger.new(buf2)
+
+      logger = BroadcastLogger.new(log1, log2)
+      logger.formatter = proc do |severity, time, progname, message|
+        "#{severity} #{message}\n"
+      end
+
+      logger.level = :info
+
+      # Outside the block, debug-level logging should be skipped
+      logger.debug("skipped before")
+      logger.with_level(:debug) do
+        # Inside, debug logging should be captured
+        assert_equal(0, logger.level)
+        logger.debug("not skipped")
+        logger.info("also not skipped")
+      end
+
+      # Back outside, debug logging should be skipped
+      assert_equal(1, logger.level)
+      logger.debug("skipped after")
+
+      assert_equal("DEBUG not skipped\nINFO also not skipped\n", buf1.string)
+      assert_equal("DEBUG not skipped\nINFO also not skipped\n", buf2.string)
+    end
+
     Logger::Severity.constants.each do |level_name|
       method = level_name.downcase
       level = Logger::Severity.const_get(level_name)
