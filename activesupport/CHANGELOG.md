@@ -1,3 +1,11 @@
+*   `ActiveSupport::BroadcastLogger` now correctly supports `with_level`, which has been
+    [available in Ruby's Logger](https://docs.ruby-lang.org/en/3.3/Logger.html#method-i-with_level).
+
+    Previously, the behavior was for `#method_missing` to forward `with_logger` to _each_ of its broadcast loggers,
+    which could cause the block to be invoked multiple times when broadcasting to multiple loggers.
+
+    *meagar*
+
 *   `ActiveSupport::CurrentAttributes#attributes` now will return a new hash object on each call.
 
     Previously, the same hash object was returned each time that method was called.
