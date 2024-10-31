@@ -308,7 +308,6 @@ module ActiveSupport
     end
 
     test "with_level invokes its block one time, even when broadcasting to 2 or more loggers" do
-      invocations = 0
       log1 = ::Logger.new(nil)
       log2 = ::Logger.new(nil)
 
