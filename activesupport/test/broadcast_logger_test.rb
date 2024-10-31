@@ -332,13 +332,13 @@ module ActiveSupport
       assert_equal 1, invocations
     end
 
-    test "with_level returns nil" do
+    test "with_level returns the value produced by the block" do
       logger = BroadcastLogger.new(
         ::Logger.new(StringIO.new),
         ::Logger.new(StringIO.new)
       )
 
-      assert_nil logger.with_level(:debug) { :foo }
+      assert_equal :foo, logger.with_level(:debug) { :foo }
     end
 
     test "with_level changes the logging level, and restores it afterwards" do

@@ -234,9 +234,6 @@ module ActiveSupport
       end
 
       yield
-
-      # ::Logger.with_level returns `nil`, so we should return `nil`
-      nil
     ensure
       previous_levels.each { |logger, prev_level| logger.level = prev_level }
     end
