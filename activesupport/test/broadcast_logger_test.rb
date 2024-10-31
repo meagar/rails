@@ -334,7 +334,12 @@ module ActiveSupport
     end
 
     test "with_level returns nil" do
-      assert_nil @logger.with_level(:debug) { }
+      logger = BroadcastLogger.new(
+        ::Logger.new(StringIO.new),
+        ::Logger.new(StringIO.new)
+      )
+
+      assert_nil logger.with_level(:debug) { :foo }
     end
 
     test "with_level changes the logging level, and restores it afterwards" do
@@ -346,26 +351,38 @@ module ActiveSupport
 
       logger = BroadcastLogger.new(log1, log2)
       logger.formatter = proc do |severity, time, progname, message|
-        "#{severity} #{message}\n"
+        "#{severity}:#{message}\n"
       end
 
       logger.level = :info
+      logger.debug("AAA") # skipped
 
-      # Outside the block, debug-level logging should be skipped
-      logger.debug("skipped before")
       logger.with_level(:debug) do
         # Inside, debug logging should be captured
         assert_equal(0, logger.level)
-        logger.debug("not skipped")
-        logger.info("also not skipped")
+
+        logger.debug("BBB") # captured
+        logger.info("CCC") # captured
+
+        logger.with_level(:error) do
+          assert_equal(3, logger.level)
+          logger.info("DDD") # skipped
+          logger.warn("EEE") # skipped
+          logger.error("FFF") # captured
+        end
+
+        assert_equal(0, logger.level)
+        logger.error("GGG") # captured
       end
 
-      # Back outside, debug logging should be skipped
+      # Back outside, debug logging should be skipped, and the level should be restored
       assert_equal(1, logger.level)
-      logger.debug("skipped after")
+      logger.debug("HHH")
 
-      assert_equal("DEBUG not skipped\nINFO also not skipped\n", buf1.string)
-      assert_equal("DEBUG not skipped\nINFO also not skipped\n", buf2.string)
+      want = "DEBUG:BBB\nINFO:CCC\nERROR:FFF\nERROR:GGG\n"
+
+      assert_equal(want, buf1.string)
+      assert_equal(want, buf2.string)
     end
 
     Logger::Severity.constants.each do |level_name|

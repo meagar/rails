@@ -224,11 +224,21 @@ module ActiveSupport
     #     logger.debug { "Hello" }
     #   end
     def with_level(level, &block)
-      old_levels = @broadcasts.map(&:level)
-      dispatch { |logger| logger.level = level }
+      # Rather than just storing an array of levels and restoring based on index, store each
+      # logger with its level, in case @broadcasts is mutated inside the block and the indices
+      # no longer line up
+      previous_levels = @broadcasts.map do |logger|
+        prev_level = logger.level
+        logger.level = level
+        [logger, prev_level]
+      end
+
       yield
+
+      # ::Logger.with_level returns `nil`, so we should return `nil`
+      nil
     ensure
-      old_levels.each.with_index { |old_level, index| @broadcasts[index].level = old_level }
+      previous_levels.each { |logger, prev_level| logger.level = prev_level }
     end
 
     def initialize_copy(other)
